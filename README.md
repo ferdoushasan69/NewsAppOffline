@@ -14,5 +14,4 @@ Room Database for offline caching and persistence.
 Hilt for modern dependency injection.
 Material Design for intuitive and visually appealing UI.
 This project demonstrates my expertise in Android Development and showcases my ability to implement industry-standard best practices like Clean Architecture and MVVM.
-
-![Uploading Screenshot_20250121_222249.png…]()
+![Uploading Screenshot_20250122_072509.png…]()
