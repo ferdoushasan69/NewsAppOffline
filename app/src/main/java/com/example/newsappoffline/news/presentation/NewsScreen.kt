@@ -2,6 +2,9 @@ package com.example.newsappoffline.news.presentation
 
 import android.content.ContentValues.TAG
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -44,25 +47,32 @@ import com.example.newsappoffline.core.domain.model.Article
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun NewsScreen(
     newsViewModel: NewsViewModel = hiltViewModel(),
     onItemClick: (String) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 
     ) {
     NewsScreen(
         state = newsViewModel.state,
         onItemClick = onItemClick,
-        onAction = newsViewModel::onAction
+        onAction = newsViewModel::onAction,
+        sharedTransitionScope = sharedTransitionScope,
+        animatedVisibilityScope = animatedVisibilityScope
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 private fun NewsScreen(
     state: NewsState,
     onItemClick: (String) -> Unit,
-    onAction: (NewsAction) -> Unit
+    onAction: (NewsAction) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
         state = rememberTopAppBarState()
@@ -78,10 +88,10 @@ private fun NewsScreen(
                 windowInsets = WindowInsets(top = 50.dp, bottom = 8.dp)
             )
         }
-    ) {
+    ) {innnerPadding->
         Box(
             modifier = Modifier
-                .padding(it)
+                .padding(innnerPadding)
                 .fillMaxSize()
                 .background(color = MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.Center
@@ -134,7 +144,10 @@ private fun NewsScreen(
                     ) { index, item ->
                         ArticleItem(
                             article = item,
-                            onArticleClick =onItemClick
+                            onArticleClick = onItemClick,
+                            sharedTransitionScope = sharedTransitionScope,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            modifier = Modifier.padding(innnerPadding)
                         )
                     }
                 }
@@ -147,61 +160,75 @@ private fun NewsScreen(
 
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ArticleItem(
     article: Article,
-    onArticleClick: (String) -> Unit
+    onArticleClick: (String) -> Unit,
+    modifier: Modifier,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .clickable {
-                onArticleClick(article.article_id)
-                Log.d(TAG, "ArticleItem click: ${article.article_id}")
-            },
-    ) {
-        Text(
-            text = article.source_name,
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = article.title,
-            style = MaterialTheme.typography.titleSmall,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Spacer(Modifier.height(8.dp))
-        AsyncImage(
-            model = article.image_url,
-            contentScale = ContentScale.Crop,
-            contentDescription = "Image",
-            modifier = Modifier
+    with(sharedTransitionScope) {
+        Column(
+            modifier = modifier
                 .fillMaxWidth()
-                .background(color = MaterialTheme.colorScheme.background)
-                .height(250.dp)
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = article.description,
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = article.pubDate,
-            style = MaterialTheme.typography.titleSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+                .padding(vertical = 16.dp)
+                .clickable {
+                    onArticleClick(article.article_id)
+                    Log.d(TAG, "ArticleItem click: ${article.article_id}")
+                },
+        ) {
+            Text(
+                text = article.source_name,
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp)
+                    .sharedElement(
+                        state = sharedTransitionScope.rememberSharedContentState("text"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = article.title,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            AsyncImage(
+                model = article.image_url,
+                contentScale = ContentScale.Crop,
+                contentDescription = "Image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color = MaterialTheme.colorScheme.background)
+                    .height(250.dp)
+                    .sharedElement(
+                        state = sharedTransitionScope.rememberSharedContentState("bounds"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    )
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = article.description,
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = article.pubDate,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
     }
     Box(
         modifier = Modifier
